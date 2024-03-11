@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using CsvHelper;
 
 namespace AppModbusTcp.Helper.CsvHelper
@@ -19,7 +20,7 @@ namespace AppModbusTcp.Helper.CsvHelper
         {
             List<TagData> tagDataList = new List<TagData>();
 
-            using (var reader = new StreamReader(filePath))
+            using (var reader = new StreamReader(filePath, CodePagesEncodingProvider.Instance.GetEncoding("Big5")))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
 
