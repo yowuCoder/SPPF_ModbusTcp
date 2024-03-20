@@ -8,7 +8,7 @@ namespace AppModbusTcp.Models.fatek
 {
     internal class FatekRecord
     {
-        public string Adress { get; set; } = null!;
+        public string Address { get; set; } = null!;
 
         public string Line { get; set; } = null!;
 

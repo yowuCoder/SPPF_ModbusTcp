@@ -35,5 +35,30 @@ namespace AppModbusTcp.Helper.CsvHelper
 
             return tagDataList;
         }
+
+        public string Read(string filePath)
+        {
+            try
+            {
+                using (var reader = new StreamReader(filePath, CodePagesEncodingProvider.Instance.GetEncoding("Big5")))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    while (csv.Read())
+                    {
+                        // read string 
+                        string line = csv.GetField<string>(0);
+                        return line;
+                    }
+                }
+                return null;
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
+
+
+        
+        }
     }
 }

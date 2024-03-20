@@ -8,11 +8,19 @@ using AppModbusTcp.Helper.ApiHelper;
 using AppModbusTcp.Models.fatek;
 using System.Text.Json;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using AppMCTcp.Helper;
+using System.Net;
+using AppModbusTcp.Helper.TxtHelper;
 /*1.寫入csv檔5天
  *2.
  * 123
  */
-string CIM_CTLPLC_IP = "192.168.2.3";
+Logger.Initialize();
+string filePathIp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config/ip.txt");
+TxtHelper _TxtHelper = new TxtHelper();
+var fileIp = _TxtHelper.Read(filePathIp);
+
+string CIM_CTLPLC_IP = fileIp[0];
 ushort startAddress_R = 1000;
 string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config/config.csv");
 NModbusRepository _NModbusRepository1 = new NModbusRepository();
@@ -29,10 +37,10 @@ void run2()
 {
      void consolePrint()
     {
-        Console.Clear();
-        Console.WriteLine(DateTime.Now.ToString());
-        Console.WriteLine($"********************************************************************************************************");
-        Console.WriteLine(AppDomain.CurrentDomain.BaseDirectory);
+    
+        Logger.LogInformation(DateTime.Now.ToString());
+        Logger.LogInformation($"********************************************************************************************************");
+        Logger.LogInformation(AppDomain.CurrentDomain.BaseDirectory);
         //string data = await apiHelper.GetAsync("/api/User");
       
         //await Console.Out.WriteLineAsync(data);
@@ -43,47 +51,125 @@ void run2()
         try
         {
             string data = await apiHelper.PostAsync(endPoint, jsonContent);
-            await Console.Out.WriteLineAsync(data);
+            //await Console.Out.WriteLineAsync(data);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.ToString());
+            Logger.LogError(ex.ToString());
         }
     
     }
 
      FatekRecord r_command(TagData line)
     {
+        try
+        {
+
+        
         ushort[] _DataArray_R = _NModbusRepository1.ModbusTcpMasterReadHoldingRegisters(CIM_CTLPLC_IP, (ushort)(int.Parse(line.Address.ToString().Substring(1))), 1);
-        // Console.WriteLine((ushort)(int.Parse(line.Address.ToString().Substring(1))));
+        // Logger.LogInformation((ushort)(int.Parse(line.Address.ToString().Substring(1))));
         FatekRecord fatek = new()
         {
             Line = line.Line,
-            Adress = line.Address.ToString(),
+            Address = line.Address.ToString(),
             Description = line.Description,
             Value = _DataArray_R[0].ToString(),
             Time = DateTime.Now,
 
         };
-        Console.WriteLine($"{line.Line}線 {line.Description} value: {_DataArray_R[0]}");
+        Logger.LogInformation($"{line.Line}線 {line.Description} value: {_DataArray_R[0]}");
         SaveToCSV($"{line.Line},{line.Description},{_DataArray_R[0]},{DateTime.Now}");
         return  fatek;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.ToString());
+            throw;
+        }
+    }
+    FatekRecord normal_command(TagData line)
+    {
+        try
+        {
+                Console.WriteLine(line.Address);
+            if (line.TagName[0] == '3')
+            {
+                var address = (ushort)(int.Parse(line.Address.ToString().Substring(1))-1);
+                var dataArray = _NModbusRepository1.ModbusTcpMasterReadInputRegisters(CIM_CTLPLC_IP, address, 1);
+               
+
+                FatekRecord fatek = new()
+                {
+                    Line = line.Line,
+                    Address = line.Address.ToString(),
+                    Description = line.Description,
+                    Value = dataArray[0].ToString(),
+                    Time = DateTime.Now,
+
+                };
+              
+                return fatek;
+
+            }
+            else if (line.TagName[0] == '4')
+            {
+               
+               // var dataArray = _NModbusRepository1.ModbusTcpMasterReadInputRegisters(CIM_CTLPLC_IP, 48, 1);
+
+                //Console.WriteLine(dataArray[0]);
+                var address = (ushort)(int.Parse(line.Address.ToString().Substring(1)) - 1);
+                int expr_value = 0;
+                _NModbusRepository1.ModbusTcpMasterWriteHoldingRegisters(CIM_CTLPLC_IP, 32,(ushort)expr_value);
+                 // var dataArray = _NModbusRepository1.ModbusTcpMasterReadHoldingRegisters(CIM_CTLPLC_IP, 32, 1);
+             
+            }
+            else if (line.TagName[0] == '1')
+            {
+                Console.WriteLine("in 1");
+                var address = (ushort)(int.Parse(line.Address.ToString().Substring(1))-1 );
+                Console.WriteLine(address);
+              // var data = _NModbusRepository1.ModbusTcpMasterReadCoils(CIM_CTLPLC_IP, address, 1);
+                 var data =  _NModbusRepository1.ModbusTcpMasterReadInputs(CIM_CTLPLC_IP, address, 1);
+                Console.WriteLine($"data {data[0]}");
+            }
+            return null;
+            
+        }
+        catch (Exception ex)
+        {
+           // Console.WriteLine(ex.ToString());
+            Logger.LogError(ex.ToString());
+            throw;
+        }
+
     }
     FatekRecord x_command(TagData line)
     {
+        try
+        {
+
+       
         bool[] _DataArray_X = _NModbusRepository1.ModbusTcpMasterReadCoils(CIM_CTLPLC_IP, (ushort)line.Address, 1);
-        Console.WriteLine($"{line.Line}線 {line.Description} value: {_DataArray_X[0]}");
+        Logger.LogInformation($"{line.Line}線 {line.Description} value: {_DataArray_X[0]}");
         SaveToCSV($"{line.Line},{line.Description},{_DataArray_X[0]},{DateTime.Now}");
         FatekRecord fatek = new()
         {
             Line = line.Line,
-            Adress = line.Address.ToString(),
+            Address = line.Address.ToString(),
             Description = line.Description,
             Value = _DataArray_X[0].ToString(),
             Time = DateTime.Now,
 
         };
         return fatek;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.ToString());
+
+            throw;
+        }
+
     }
     _Process = true;
     while (_Process)
@@ -105,17 +191,23 @@ void run2()
               
                     fatekRecords.Add(x_command(line));
                 }
-         
+                else
+                {
+                    fatekRecords.Add(normal_command(line));
+                }         
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                Logger.LogError(ex.ToString());
+              
             }
         }
         string json = JsonSerializer.Serialize(fatekRecords);
+        Logger.LogInformation(json);
         Console.WriteLine(json);
-        postToApi("/api/FatekRecord/list", json);
-        Console.WriteLine($"********************************************************************************************************");
+         postToApi("/api/FatekRecord/list", json);
+        Logger.LogInformation($"********************************************************************************************************");
         System.Threading.Thread.Sleep(10000);
     }
     
@@ -124,7 +216,7 @@ void run2()
         string data = "";
         try
         {
-            Console.WriteLine("save to ");
+            Logger.LogInformation("save to ");
             StreamWriter wr = new StreamWriter($"fatek_{DateTime.Now.ToString("yyyyMMddHHmmss")}.CSV", true, CodePagesEncodingProvider.Instance.GetEncoding("Big5"));
 
             data += _txt;
@@ -133,7 +225,10 @@ void run2()
             data = "";
             wr.Close();
         }
-        catch(Exception e) { Console.WriteLine(e); }
+        catch(Exception e) { 
+                Logger.LogError(e.ToString());
+
+        }
 
     }
 }

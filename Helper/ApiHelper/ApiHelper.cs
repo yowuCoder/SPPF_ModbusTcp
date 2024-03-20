@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AppMCTcp.Helper;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,7 +28,7 @@ namespace AppModbusTcp.Helper.ApiHelper
             }
             catch (Exception ex)
             {
-                await Console.Out.WriteLineAsync(ex.ToString());
+                 Logger.LogError(ex.ToString());
                 throw ;
             }
           
@@ -44,7 +45,7 @@ namespace AppModbusTcp.Helper.ApiHelper
             }
             catch (Exception ex)
             {
-                await Console.Out.WriteLineAsync(ex.ToString());
+                Logger.LogError(ex.ToString());
                 throw ;
             }
            

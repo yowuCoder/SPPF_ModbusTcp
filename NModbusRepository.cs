@@ -48,7 +48,7 @@ namespace app1
 
 
                 var inputs = master.ReadInputRegisters(1, startAddress, numInputs);
-                Console.WriteLine("123");
+                
                 return inputs;
             }
 
@@ -106,7 +106,7 @@ namespace app1
             };
          
         }
-        public void ModbusTcpMasterReadInputs(string ip, ushort startAddress, ushort numInputs)
+        public bool[] ModbusTcpMasterReadInputs(string ip, ushort startAddress, ushort numInputs)
         {
             using (System.Net.Sockets.TcpClient client = new System.Net.Sockets.TcpClient(ip, 502) { SendTimeout = 2000, ReceiveTimeout = 2000 })
             {
@@ -114,7 +114,7 @@ namespace app1
                 IModbusMaster master = factory.CreateMaster(client);
 
                 var inputs = master.ReadInputs(0, startAddress, numInputs);
-
+                return inputs;
             }
 
 
